@@ -1,26 +1,34 @@
 import logoImage from "../assets/logo.png";
 import { Eye, EyeOff } from "lucide-react";
 import { useState } from "react";
-import { userNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
-import axios from "../api/axios.js";
+import axios from "axios";
 
 const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const navigate = userNavigate();
+  const navigate = useNavigate();
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    console.log("Submitting login for:", email);
+
     try {
-      await axios.post("/login", { email, password });
+      const response = await axios.post(
+        `${import.meta.env.VITE_BACKEND_URL}/api/users/login`,
+        { email, password }
+      );
+      console.log("Login success:", response.data);
       toast.success("Login successful!");
       navigate("/home");
     } catch (error) {
+      console.error("Login error:", error.response?.data || error.message);
       toast.error(error.response?.data?.error || "Login failed");
     }
   };
+
   return (
     <div className="flex flex-col md:flex-row min-h-screen">
       {/* Right Side – Image/Welcome (shows on top in mobile) */}

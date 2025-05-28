@@ -5,11 +5,13 @@ const {
   getUserByEmail,
   updateUserByEmail,
   deleteUserByEmail,
+  loginController,
 } = require("../controllers/userControllers.js");
 
 const router = express.Router();
 
 router.post("/register", registerController);
+router.post("/login", loginController);
 router.get("/getUser", getUserController);
 router.get("/userById/:email", getUserByEmail);
 router.put("/userUpdate/:email", updateUserByEmail);

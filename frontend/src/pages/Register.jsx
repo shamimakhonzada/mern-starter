@@ -1,22 +1,31 @@
+import axios from "axios";
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
-import axios from "../api/axios.js";
+// import axios from "../api/axios.js";
 const Register = () => {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const navigate = useNavigate();
-  const handleRegister = async (e) => {
-    e.preventDefault();
-    try {
-      await axios.post("/register", { name, email, password });
-      toast.success("Registration successful!");
-      navigate("/login");
-    } catch (error) {
-      toast.error(error.response?.data?.error || "Registration failed");
-    }
-  };
+ const handleRegister = async (e) => {
+  e.preventDefault();
+  try {
+    const response = await axios.post("http://localhost:3000/api/users/register", {
+      name,
+      email,
+      password,
+    });
+    console.log("response: ", response);
+    toast.success("Registration successful!");
+    navigate("/");
+  } catch (error) {
+    console.error("Registration error:", error);
+    toast.error(error.response?.data?.error || "Registration failed");
+  }
+};
+
   return (
     <div className="flex items-center justify-center bg-gray-100 min-h-screen p-6">
       <div className="w-full max-w-md bg-white p-8 rounded-lg shadow-md">
@@ -24,7 +33,7 @@ const Register = () => {
           Sign up
         </h2>
         {/* From */}
-        <form onSubmit={handleRegister} className="space-y-4">
+<form className="space-y-4" onSubmit={handleRegister}>
           {/* Name */}
           <div className="mb-4">
             <label
@@ -91,6 +100,7 @@ const Register = () => {
           {/* Submit Button */}
           <button
             type="submit"
+            // onClick={handleRegister} 
             className="w-full py-3 bg-indigo-600 text-white font-semibold rounded-md
                        hover:bg-indigo-700 focus:outline-none focus:ring-4
                        focus:ring-indigo-300 transition"

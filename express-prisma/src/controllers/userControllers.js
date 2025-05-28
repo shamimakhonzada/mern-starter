@@ -4,7 +4,7 @@ const bcrypt = require("bcryptjs");
 const registerController = async (req, res) => {
   try {
     const { name, email, password } = req.body;
-
+    console.log("Registering user:", name, email);
     if (!name || !email || !password) {
       return res.status(400).json({ error: "All fields are required" });
     }
@@ -92,7 +92,7 @@ const updateUserByEmail = async (req, res) => {
       return res.status(400).json({ error: "Email is required" });
     }
 
-    const { name ,password } = req.body;
+    const { name, password } = req.body;
 
     // Hash the password if provided
     let updatedData = {};
@@ -151,19 +151,48 @@ const deleteUserByEmail = async (req, res) => {
     console.error("Delete Error:", error.message);
 
     // Handle case if user not found
-    if (error.code === 'P2025') {
+    if (error.code === "P2025") {
       return res.status(404).json({ error: "User not found" });
     }
 
     res.status(500).json({ error: `Server error: ${error.message}` });
   }
 };
+const loginController = async (req, res) => {
+  try {
+    const { email, password } = req.body;
 
+    if (!email || !password) {
+      return res.status(400).json({ error: "Email and password are required" });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(401).json({ error: "Invalid password" });
+    }
+
+    // You can add session/cookie/token logic here if needed
+
+    res.status(200).json({ success: true, message: "Login successful" });
+  } catch (error) {
+    console.error("Login Error:", error.message);
+    res.status(500).json({ error: `Server error: ${error.message}` });
+  }
+};
 
 module.exports = {
   registerController,
   getUserController,
   getUserByEmail,
   updateUserByEmail,
-  deleteUserByEmail
+  deleteUserByEmail,
+  loginController,
 };
