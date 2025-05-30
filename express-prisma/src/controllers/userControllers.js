@@ -188,6 +188,132 @@ const loginController = async (req, res) => {
   }
 };
 
+const createStaticData = async (req, res) => {
+  try {
+    const { staticD, dynamicD } = req.body;
+
+    // 1. Validate staticD
+    if (!staticD) {
+      return res.status(400).json({ error: "staticD data is missing" });
+    }
+
+    // 2. Validate dynamicD
+    if (!dynamicD || !Array.isArray(dynamicD) || dynamicD.length === 0) {
+      return res
+        .status(400)
+        .json({ error: "dynamicD data is missing or empty" });
+    }
+
+    const { devID, hMAC, email, ssid, HwV, firmVer, RF } = staticD;
+
+     const existingDevice = await prisma.staticD.findFirst({
+      where: {
+        OR: [devID ? { devID } : undefined, hMAC ? { hMAC } : undefined].filter(
+          Boolean
+        ),
+      },
+    });
+
+    let staticDId;
+
+    if (existingDevice) {
+      // 4. Update existing device
+      const updatedStaticD = await prisma.staticD.update({
+        where: { id: existingDevice.id },
+        data: {
+          email,
+          ssid: ssid ? parseInt(ssid) : null,
+          HmV: HwV || null,
+          firmVer,
+          RF,
+        },
+      });
+      staticDId = updatedStaticD.id;
+    } else {
+      // 5. Create new device
+      const newStaticD = await prisma.staticD.create({
+        data: {
+          devID,
+          hMAC,
+          email,
+          ssid: ssid ? parseInt(ssid) : null,
+          HmV: HwV || null,
+          firmVer,
+          RF,
+        },
+      });
+      staticDId = newStaticD.id;
+    }
+
+    // 6. Create dynamicD entries with nested nodes in parallel
+    const createdDynamicDs = await Promise.all(
+      dynamicD.map(async (d) => {
+        return prisma.dynamicD.create({
+          data: {
+            batSoC: d.batSoC,
+            rssi: d.rssi,
+            epoch: d.epoch,
+            temp: d.temp,
+            humi: d.humi,
+            co: d.co,
+            pm25: d.pm25,
+            staticD: { connect: { id: staticDId } },
+            node: {
+              create:
+                d.node && Array.isArray(d.node)
+                  ? d.node.map((n) => ({
+                      nMAC: n.nMAC,
+                      nAddr: n.nAddr,
+                      nRSSI: n.nRSSI,
+                      nT: n.nT,
+                      nH: n.nH,
+                      nBat: n.nBat,
+                      nEpoch: n.nEpoch,
+                    }))
+                  : [],
+            },
+          },
+          include: {
+            node: true,
+          },
+        });
+      })
+    );
+
+    return res.status(200).json({
+      statusCode: 200,
+      message: "Device data stored or updated successfully",
+      data: {
+        staticDId,
+        dynamicD: createdDynamicDs,
+      },
+    });
+  } catch (error) {
+    console.error("Error saving data:", error);
+    return res
+      .status(500)
+      .json({ error: error.message || "Internal server error" });
+  }
+};
+
+const getAllDeviceData = async (req, res) => {
+  try {
+    const data = await prisma.staticD.findMany({
+      include: {
+        dynamicD: {
+          include: {
+            node: true,
+          },
+        },
+      },
+    });
+    res.json(data);
+  } catch (error) {
+    console.error("Error", error.message);
+    res.status(500).json({ error: "Something went wrong" });
+  }
+};
+
 module.exports = {
   registerController,
   getUserController,
@@ -195,4 +321,6 @@ module.exports = {
   updateUserByEmail,
   deleteUserByEmail,
   loginController,
+  getAllDeviceData,
+  createStaticData,
 };

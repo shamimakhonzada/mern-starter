@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import { toast } from "react-toastify";
 import { Edit, Trash2, Save, X } from "lucide-react";
+import Swal from "sweetalert2";
 
 const Home = () => {
   const [users, setUsers] = useState([]);
@@ -24,14 +25,45 @@ const Home = () => {
   }, []);
 
   const handleDelete = async (email) => {
-    try {
-      await axios.delete(
-        `${import.meta.env.VITE_BACKEND_URL}/api/users/userDelete/${email}`
+    const swalWithBootstrapButtons = Swal.mixin({
+      customClass: {
+        confirmButton: "bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 ml-1",
+        cancelButton: "bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 mr-1",
+      },
+      buttonsStyling: false,
+    });
+
+    const result = await swalWithBootstrapButtons.fire({
+      title: "Are you sure?",
+      text: "You won't be able to revert this!",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Yes, delete it!",
+      cancelButtonText: "No, cancel!",
+      reverseButtons: true,
+    });
+
+    if (result.isConfirmed) {
+      try {
+        await axios.delete(
+          `${import.meta.env.VITE_BACKEND_URL}/api/users/userDelete/${email}`
+        );
+        toast.success("User deleted!");
+        swalWithBootstrapButtons.fire(
+          "Deleted!",
+          "User has been deleted.",
+          "success"
+        );
+        fetchUsers();
+      } catch (error) {
+        toast.error("Delete failed.");
+      }
+    } else if (result.dismiss === Swal.DismissReason.cancel) {
+      swalWithBootstrapButtons.fire(
+        "Cancelled",
+        "Your user is safe :)",
+        "error"
       );
-      toast.success("User deleted!");
-      fetchUsers();
-    } catch (error) {
-      toast.error("Delete failed.");
     }
   };
 
